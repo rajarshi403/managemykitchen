@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ManageMyKitchen MVP</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; max-width: 900px; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+      input, button, textarea { padding: 8px; margin: 4px 0; width: 100%; }
+      button { cursor: pointer; }
+      pre { background: #f6f6f6; padding: 12px; overflow-x: auto; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    </style>
+  </head>
+  <body>
+    <h1>ManageMyKitchen MVP</h1>
+    <p>Backend API: <code>http://localhost:8000</code></p>
+
+    <div class="card">
+      <h2>1) Login</h2>
+      <input id="username" value="you" />
+      <input id="password" type="password" value="changeme123" />
+      <button onclick="login()">Login</button>
+      <pre id="loginOut"></pre>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>2) Preferences</h2>
+        <textarea id="prefText">For breakfast keep it high-protein. Lunch mostly vegetarian.</textarea>
+        <button onclick="savePreference()">Interpret Preference</button>
+        <pre id="prefOut"></pre>
+      </div>
+
+      <div class="card">
+        <h2>3) Inventory Event</h2>
+        <input id="itemName" value="tomato" />
+        <input id="itemQty" type="number" value="500" />
+        <input id="itemUnit" value="g" />
+        <select id="itemAction">
+          <option value="add">add</option>
+          <option value="use">use</option>
+          <option value="set">set</option>
+        </select>
+        <button onclick="inventoryEvent()">Submit Event</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>4) Current Inventory</h2>
+      <button onclick="loadInventory()">Refresh Inventory</button>
+      <pre id="inventoryOut"></pre>
+    </div>
+
+    <div class="card">
+      <h2>5) Generate 7-Day Plan</h2>
+      <button onclick="generatePlan()">Generate</button>
+      <pre id="planOut"></pre>
+    </div>
+
+    <script>
+      const API = "http://localhost:8000";
+      let token = null;
+
+      async function login() {
+        const res = await fetch(`${API}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: username.value, password: password.value }),
+        });
+        const data = await res.json();
+        token = data.access_token || null;
+        loginOut.textContent = JSON.stringify(data, null, 2);
+      }
+
+      async function savePreference() {
+        const res = await fetch(`${API}/preferences/interpret`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: username.value, text: prefText.value }),
+        });
+        prefOut.textContent = JSON.stringify(await res.json(), null, 2);
+      }
+
+      async function inventoryEvent() {
+        await fetch(`${API}/inventory/events`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: itemAction.value,
+            item_name: itemName.value,
+            quantity: Number(itemQty.value),
+            unit: itemUnit.value
+          }),
+        });
+        await loadInventory();
+      }
+
+      async function loadInventory() {
+        const res = await fetch(`${API}/inventory/current`);
+        inventoryOut.textContent = JSON.stringify(await res.json(), null, 2);
+      }
+
+      async function generatePlan() {
+        const res = await fetch(`${API}/plans/generate-week`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        planOut.textContent = JSON.stringify(await res.json(), null, 2);
+      }
+    </script>
+  </body>
+</html>
